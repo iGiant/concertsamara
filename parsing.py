@@ -18,23 +18,24 @@ def getafisha(isLog=True):
                 if subsription != '':
                     mydict = {}
                     parametrs = subsription.split(',')
-                    mydict['keys'] = parametrs[:-2]
+                    mydict['keys'] = list(parametrs[:-2])
                     mydict['mail'] = parametrs[-2]
                     mydict['count'] = parametrs[-1]
-                    if mydict['count'] != '1':
-                        keys = ','.join(mydict['keys'])
-                        count = '0' if mydict['count'] == '0' else str(int(mydict['count'])-1)
-                        file.write(','.join([keys, mydict['mail'], count])+'\n')
-                    mydict.pop('count')
                     result.append(mydict)
         return result
 
+
     def search(eventlist:list,subscription:list):
-        def send_mail(mail:str, subj:str, key:str, event:dict):
+        def send_mail(mail:str, key:str, event:dict):
             import smtplib
             from email.mime.text import MIMEText
-            msg = MIMEText('<b>Здесь могла бы быть ваша реклама</b>', 'HTML', 'utf-8')
-            msg['Subject'] = subj
+            text = """Сработал триггер на слово "<b>{}</b>"<br>
+            Мероприятие <a href="{}">{}</a>  пройдет {} ({}) в {} в следующем месте: <i>{}</i>.<br><br>
+            Билеты можно купить <a href="{}">здесь</a><br><br>
+               {}""".format(key, event['url'], event['name'], event['date'], event['time'][:2], event['time'][3:],
+                            event['place'], event['buy'], event['detail'], )
+            msg = MIMEText(text, 'HTML', 'utf-8')
+            msg['Subject'] = 'Культурные мероприятия Самары: сработал триггер {}'.format(key)
             msg['From'] = 'Concert@metrosamara.ru'
             msg['To'] = mail
             smtpObj = smtplib.SMTP('mail.sm', 587)
@@ -44,7 +45,24 @@ def getafisha(isLog=True):
             smtpObj.login('services@metrosamara.ru', '123456')
             smtpObj.sendmail('Concert@metrosamara.ru', mail, msg.as_string())
             smtpObj.quit()
-        send_mail('kopylov@metrosamara.ru', 'Тестовое письмо', '', dict())
+
+        for event in eventlist:
+            for i, keys in enumerate(subscription):
+                fbreak = False
+                for key in keys['keys']:
+                    if event['name'].lower().find(key.lower()) != -1 or event['detail'].lower().find(key.lower()) !=-1:
+                        fbreak = True
+                        send_mail(subscription[i]['mail'], key, event)
+                        break;
+                if fbreak:
+                    if keys['count'] != '0':
+                        subscription[i]['count'] = '-1' if keys['count'] == '1' else str(int(keys['count'])-1)
+                    break
+        with open('subscription.dat', 'w', encoding='utf-8') as file:
+            for keys in subscription:
+                if keys['count'] != '-1':
+                    text = ','.join(keys['keys'])
+                    file.write('{},{},{}'.format(text, keys['mail'], keys['count']))
 
 
     import requests
@@ -58,9 +76,6 @@ def getafisha(isLog=True):
     http = 'http://koncertsamara.ru/afisha/'
     afisha = []
     page = 1
-    subscriptions = load_setting()
-    print(subscriptions)
-    search([],[])
     while True:
         response = requests.get(http+'?a-page='+str(page-1))
         parsed_body = html.fromstring(response.text)
@@ -94,6 +109,7 @@ def getafisha(isLog=True):
         parsed_body = html.fromstring(response.text)
         if parsed_body.xpath('//*[@id="main"]/div[2]/div[3]/ul/li/a/text()')[-1] == str(page): break
         page += 1
+    search(afisha, load_setting())
     return afisha
 
 def savetofile(afisha,file='koncert.xlsx'):
