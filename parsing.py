@@ -29,6 +29,24 @@ def getafisha(isLog=True):
                     result.append(mydict)
         return result
 
+    def search(eventlist:list,subscription:list):
+        def send_mail(mail:str, subj:str, key:str, event:dict):
+            import smtplib
+            from email.mime.text import MIMEText
+            msg = MIMEText('<b>Здесь могла бы быть ваша реклама</b>', 'HTML', 'utf-8')
+            msg['Subject'] = subj
+            msg['From'] = 'Concert@metrosamara.ru'
+            msg['To'] = mail
+            smtpObj = smtplib.SMTP('mail.sm', 587)
+            smtpObj.ehlo()
+            smtpObj.starttls()
+            smtpObj.ehlo()
+            smtpObj.login('services@metrosamara.ru', '123456')
+            smtpObj.sendmail('Concert@metrosamara.ru', mail, msg.as_string())
+            smtpObj.quit()
+        send_mail('kopylov@metrosamara.ru', 'Тестовое письмо', '', dict())
+
+
     import requests
     from lxml import html
     import urllib.parse
@@ -42,7 +60,7 @@ def getafisha(isLog=True):
     page = 1
     subscriptions = load_setting()
     print(subscriptions)
-
+    search([],[])
     while True:
         response = requests.get(http+'?a-page='+str(page-1))
         parsed_body = html.fromstring(response.text)
