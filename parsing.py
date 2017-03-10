@@ -9,6 +9,26 @@ def getafisha(isLog=True):
         text = text.replace(' "', ' «')
         return text.replace('"', '»')
 
+    def load_setting():
+        with open('subscription.dat', 'r', encoding='utf-8') as file:
+            subsriptions = file.read().split('\n')
+        result = []
+        with open('subscription.dat', 'w', encoding='utf-8') as file:
+            for subsription in subsriptions:
+                if subsription != '':
+                    mydict = {}
+                    parametrs = subsription.split(',')
+                    mydict['keys'] = parametrs[:-2]
+                    mydict['mail'] = parametrs[-2]
+                    mydict['count'] = parametrs[-1]
+                    if mydict['count'] != '1':
+                        keys = ','.join(mydict['keys'])
+                        count = '0' if mydict['count'] == '0' else str(int(mydict['count'])-1)
+                        file.write(','.join([keys, mydict['mail'], count])+'\n')
+                    mydict.pop('count')
+                    result.append(mydict)
+        return result
+
     import requests
     from lxml import html
     import urllib.parse
@@ -20,6 +40,9 @@ def getafisha(isLog=True):
     http = 'http://koncertsamara.ru/afisha/'
     afisha = []
     page = 1
+    subscriptions = load_setting()
+    print(subscriptions)
+
     while True:
         response = requests.get(http+'?a-page='+str(page-1))
         parsed_body = html.fromstring(response.text)
