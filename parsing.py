@@ -13,15 +13,14 @@ def getafisha(isLog=True):
         with open('subscription.dat', 'r', encoding='utf-8') as file:
             subsriptions = file.read().split('\n')
         result = []
-        with open('subscription.dat', 'w', encoding='utf-8') as file:
-            for subsription in subsriptions:
-                if subsription != '':
-                    mydict = {}
-                    parametrs = subsription.split(',')
-                    mydict['keys'] = list(parametrs[:-2])
-                    mydict['mail'] = parametrs[-2]
-                    mydict['count'] = parametrs[-1]
-                    result.append(mydict)
+        for subsription in subsriptions:
+            if subsription != '':
+                mydict = {}
+                parametrs = subsription.split(',')
+                mydict['keys'] = list(parametrs[:-2])
+                mydict['mail'] = parametrs[-2]
+                mydict['count'] = parametrs[-1]
+                result.append(mydict)
         return result
 
 
@@ -43,7 +42,10 @@ def getafisha(isLog=True):
             smtpObj.starttls()
             smtpObj.ehlo()
             smtpObj.login('services@metrosamara.ru', '123456')
-            smtpObj.sendmail('Concert@metrosamara.ru', mail, msg.as_string())
+            try:
+                smtpObj.sendmail('Concert@metrosamara.ru', mail, msg.as_string())
+            except:
+                pass
             smtpObj.quit()
 
         for event in eventlist:
@@ -62,7 +64,7 @@ def getafisha(isLog=True):
             for keys in subscription:
                 if keys['count'] != '-1':
                     text = ','.join(keys['keys'])
-                    file.write('{},{},{}'.format(text, keys['mail'], keys['count']))
+                    file.write('{},{},{}\n'.format(text, keys['mail'], keys['count']))
 
 
     import requests
