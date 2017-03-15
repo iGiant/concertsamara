@@ -55,6 +55,7 @@ def getafisha(isLog=True):
                     if event['name'].lower().find(key.lower()) != -1 or event['detail'].lower().find(key.lower()) !=-1:
                         fbreak = True
                         send_mail(subscription[i]['mail'], key, event)
+                        logger.info('Письмо на "{}", кодовое слово "{}"'.format(subscription[i]['mail'],key))
                         break;
                 if fbreak:
                     if keys['count'] != '0':
