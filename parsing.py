@@ -10,7 +10,7 @@ def getafisha(islog=True):
         return '' if not temp else temp[0]
 
     def changequotes(mytext):
-        if mytext[0] == '"':
+        if mytext and mytext[0] == '"':
             mytext = '«' + mytext[1:]
         mytext = mytext.replace(' "', ' «')
         return mytext.replace('"', '»')
