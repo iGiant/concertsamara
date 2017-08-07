@@ -2,7 +2,7 @@ import requests
 from lxml import html
 import urllib.parse
 import logging
-from tqdm import tqdm
+from tqdm import trange
 
 
 def getafisha(islog=True):
@@ -89,7 +89,7 @@ def getafisha(islog=True):
             pages = int(temp_page[-1])
             break
         pages = int(temp_page[-2]) - 1
-    for page in tqdm(range(pages)):
+    for page in trange(pages):
         response = requests.get(http + '?a-page=' + str(page))
         parsed_body = html.fromstring(response.text)
         for i in range(1, len(parsed_body.xpath('///*[@id="main"]/div/div/ul/li/div/div[2]/h3/text()')) + 1):
