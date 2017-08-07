@@ -2,6 +2,7 @@ import requests
 from lxml import html
 import urllib.parse
 import logging
+from tqdm import tqdm
 
 
 def getafisha(islog=True):
@@ -79,14 +80,18 @@ def getafisha(islog=True):
     logger.info('*' * 25)
     http = 'http://koncertsamara.ru/afisha/'
     afisha = []
-    page = 1
+    pages = 0
     while True:
-        response = requests.get(http + '?a-page=' + str(page - 1))
+        response = requests.get(http + '?a-page=' + str(pages))
         parsed_body = html.fromstring(response.text)
-        if islog:
-            logger.info('Обрабатывается страница %d' % page)
-        else:
-            print('Обрабатывается страница %d' % page)
+        temp_page = parsed_body.xpath('//*[@id="main"]/div[2]/div[3]/ul/li/a/text()')
+        if temp_page[-1] != 'Следующая':
+            pages = int(temp_page[-1])
+            break
+        pages = int(temp_page[-2]) - 1
+    for page in tqdm(range(pages)):
+        response = requests.get(http + '?a-page=' + str(page))
+        parsed_body = html.fromstring(response.text)
         for i in range(1, len(parsed_body.xpath('///*[@id="main"]/div/div/ul/li/div/div[2]/h3/text()')) + 1):
             tusa = {}
             tusa['name'] = changequotes(addtusa('///*[@id="main"]/div/div/ul/li[%d]/div/div[2]/h3/text()' % i))
@@ -109,11 +114,6 @@ def getafisha(islog=True):
                     if len(tusa['detail']) < len(temp_detail[j]):
                         tusa['detail'] = temp_detail[j]
             afisha.append(tusa)
-        response = requests.get(http + '?a-page=' + str(page - 1))
-        parsed_body = html.fromstring(response.text)
-        if parsed_body.xpath('//*[@id="main"]/div[2]/div[3]/ul/li/a/text()')[-1] == str(page):
-            break
-        page += 1
     search(afisha, load_setting())
     return afisha
 
