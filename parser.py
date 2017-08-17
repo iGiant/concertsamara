@@ -1,11 +1,11 @@
+import logging
+import urllib.parse
 import requests
 from lxml import html
-import urllib.parse
-import logging
 from tqdm import trange
 
 
-def getafisha(islog=True):
+def getafisha(islog = True):
     def addtusa(mystr):
         temp = list(parsed_body.xpath(mystr))
         return '' if not temp else temp[0]
@@ -67,7 +67,7 @@ def getafisha(islog=True):
                         break
                 if fbreak:
                     if keys['count'] != '0':
-                        subscription[i]['count'] = '-1' if keys['count'] == '1' else str(int(keys['count']) - 1)
+                        subscription[index]['count'] = '-1' if keys['count'] == '1' else str(int(keys['count']) - 1)
                     break
         with open('subscription.dat', 'w', encoding='utf-8') as file:
             for keys in subscription:
@@ -130,7 +130,7 @@ def savetofile(afisha, file='koncert.xlsx'):
     dside = Side(style='double', color=COLOR_INDEX[0])
     border = Border(left=side, right=side, top=side, bottom=side)
     hborder = Border(left=side, right=side, top=side, bottom=dside)
-    for i, entry in enumerate(afisha):
+    for i in range(len(afisha)):
         ws.append([afisha[i]['date'], afisha[i]['time'],
                    '=HYPERLINK("%s","%s")' % (afisha[i]['url'], afisha[i]['name']),
                    '=HYPERLINK("%s","%s")' % (afisha[i]['buy'], afisha[i]['place'])])
@@ -140,7 +140,7 @@ def savetofile(afisha, file='koncert.xlsx'):
             ws[r + str(i + 2)].border = border
             if r in ('A', 'B'):
                 ws[r + str(i + 2)].alignment = alignment.Alignment(horizontal='center')
-    for sym in ['A1', 'B1', 'C1', 'D1']:
+    for sym in ('A1', 'B1', 'C1', 'D1'):
         ws[sym].font = fonts.Font(size=12, bold=True)
         ws[sym].alignment = alignment.Alignment(horizontal='center')
         ws[sym].border = hborder
