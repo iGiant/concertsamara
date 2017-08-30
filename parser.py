@@ -36,13 +36,12 @@ def getafisha(islog = True):
             import smtplib
             from concertsamaradata import SMTPSERVER, SERVICESMAILLOGIN, SERVICESMAILPASS, BACKMAILADRR
             from email.mime.text import MIMEText
-            mailtext = """Сработал триггер на слово "<b>{}</b>"<br>
-            Мероприятие <a href="{}">{}</a>  пройдет {} ({}) в {} в следующем месте: <i>{}</i>.<br><br>
-            Билеты можно купить <a href="{}">здесь</a><br><br>
-               {}""".format(key, event['url'], event['name'], event['date'], event['time'][:2], event['time'][3:],
-                            event['place'], event['buy'], event['detail'], )
+            mailtext = f"""Сработал триггер на слово "<b>{key}</b>"<br>
+Мероприятие <a href="{event['url']}">{event['name']}</a> пройдет {event['date']} ({event['time'][:2]}) 
+в {event['time'][3:]} в следующем месте: <i>{event['place']}</i>.<br><br>Билеты можно купить
+<a href="{event['buy']}">здесь</a><br><br>{event['detail']}"""
             msg = MIMEText(mailtext, 'HTML', 'utf-8')
-            msg['Subject'] = 'Культурные мероприятия Самары: сработал триггер {}'.format(key)
+            msg['Subject'] = f'Культурные мероприятия Самары: сработал триггер {key}'
             msg['From'] = BACKMAILADRR
             msg['To'] = mail
             smtpObj = smtplib.SMTP(SMTPSERVER, 587)
@@ -63,7 +62,7 @@ def getafisha(islog = True):
                     if event['name'].lower().find(key.lower()) != -1 or event['detail'].lower().find(key.lower()) != -1:
                         fbreak = True
                         send_mail(subscription[index]['mail'], key, event)
-                        logger.info('Письмо на "{}", кодовое слово "{}"'.format(subscription[index]['mail'], key))
+                        logger.info(f'''Письмо на "{subscription[index]['mail']}", кодовое слово "{key}"''')
                         break
                 if fbreak:
                     if keys['count'] != '0':
@@ -73,7 +72,7 @@ def getafisha(islog = True):
             for keys in subscription:
                 if keys['count'] != '-1':
                     text = ','.join(keys['keys'])
-                    file.write('{},{},{}\n'.format(text, keys['mail'], keys['count']))
+                    file.write(f"{text},{keys['mail']},{keys['count']}\n")
 
     logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO, filename=r'd:\python\logs\parsing.log')
     logger = logging.getLogger(__name__)
