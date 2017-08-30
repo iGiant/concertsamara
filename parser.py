@@ -7,8 +7,8 @@ from tqdm import trange
 
 def getafisha(islog = True):
     def addtusa(mystr):
-        temp = list(parsed_body.xpath(mystr))
-        return '' if not temp else temp[0]
+        temp = tuple(parsed_body.xpath(mystr))
+        return temp[0] if temp else ''
 
     def changequotes(mytext):
         if mytext and mytext[0] == '"':
@@ -16,7 +16,7 @@ def getafisha(islog = True):
         mytext = mytext.replace(' "', ' «')
         return mytext.replace('"', '»')
 
-    def load_setting():
+    def load_setting()-> tuple:
         with open('subscription.dat', 'r', encoding='utf-8') as file:
             subsriptions = file.read().split('\n')
         result = []
@@ -28,9 +28,9 @@ def getafisha(islog = True):
                 mydict['mail'] = parametrs[-2]
                 mydict['count'] = parametrs[-1]
                 result.append(mydict)
-        return result
+        return tuple(result)
 
-    def search(eventlist: list, subscription: list):
+    def search(eventlist: tuple, subscription: tuple):
 
         def send_mail(mail: str, key: str, event: dict):
             import smtplib
@@ -113,8 +113,9 @@ def getafisha(islog = True):
                     if len(tusa['detail']) < len(temp_detail[j]):
                         tusa['detail'] = temp_detail[j]
             afisha.append(tusa)
-    search(afisha, load_setting())
-    return afisha
+    result = tuple(afisha)
+    search(result, load_setting())
+    return result
 
 
 def savetofile(afisha, file='koncert.xlsx'):
