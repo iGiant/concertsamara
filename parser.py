@@ -3,18 +3,18 @@ import urllib.parse
 import requests
 from lxml import html
 from tqdm import trange
+from mygrabber import get_content_list
 
 
-def getafisha(islog = True):
-    def addtusa(mystr):
+def getafisha()-> tuple:
+    def addtusa(mystr: str)-> str:
         temp = tuple(parsed_body.xpath(mystr))
         return temp[0] if temp else ''
 
-    def changequotes(mytext):
+    def changequotes(mytext: str)-> str:
         if mytext and mytext[0] == '"':
             mytext = '«' + mytext[1:]
-        mytext = mytext.replace(' "', ' «')
-        return mytext.replace('"', '»')
+        return mytext.replace(' "', ' «').replace('"', '»').lstrip().rstrip()
 
     def load_setting()-> tuple:
         with open('subscription.dat', 'r', encoding='utf-8') as file:
@@ -51,7 +51,7 @@ def getafisha(islog = True):
             smtpObj.login(SERVICESMAILLOGIN, SERVICESMAILPASS)
             try:
                 smtpObj.sendmail(BACKMAILADRR, mail, msg.as_string())
-            except:
+            except Exception:
                 pass
             smtpObj.quit()
 
@@ -81,9 +81,7 @@ def getafisha(islog = True):
     afisha = []
     pages = 0
     while True:
-        response = requests.get(http + '?a-page=' + str(pages))
-        parsed_body = html.fromstring(response.text)
-        temp_page = parsed_body.xpath('//*[@id="main"]/div[2]/div[3]/ul/li/a/text()')
+        temp_page = get_content_list(f'{http}?a-page={pages}', '//*[@id="main"]/div[2]/div[3]/ul/li/a/text()')
         if temp_page[-1] != 'Следующая':
             pages = int(temp_page[-1])
             break
@@ -93,25 +91,19 @@ def getafisha(islog = True):
         parsed_body = html.fromstring(response.text)
         for i in range(1, len(parsed_body.xpath('///*[@id="main"]/div/div/ul/li/div/div[2]/h3/text()')) + 1):
             tusa = {}
-            tusa['name'] = changequotes(addtusa('///*[@id="main"]/div/div/ul/li[%d]/div/div[2]/h3/text()' % i))
-            tusa['date'] = addtusa('///*[@id="main"]/div/div/ul/li[%d]/div/div[1]/span[1]/text()' % i)
-            tusa['time'] = addtusa('///*[@id="main"]/div/div/ul/li[%d]/div/div[1]/span[3]/text()' % i)
-            tusa['place'] = changequotes(addtusa('///*[@id="main"]/div/div/ul/li[%d]/h4/a/text()' % i))
-            tusa['url'] = addtusa('///*[@id="main"]/div/div/ul/li[%d]/div/div[4]/div/a[1]/@href' % i)
-            tusa['buy'] = addtusa('///*[@id="main"]/div/div/ul/li[%d]/div/div[4]/div/a[2]/@href' % i)
-            if addtusa('///*[@id="main"]/div/div/ul/li[%d]/div/div[4]/div/a[1]/text()' % i) in ['']:
-                tusa['url'] = addtusa('///*[@id="main"]/div/div/ul/li[%d]/div/div[4]/div/a[2]/@href' % i)
-                tusa['buy'] = addtusa('///*[@id="main"]/div/div/ul/li[%d]/div/div[4]/div/a[3]/@href' % i)
+            tusa['name'] = changequotes(addtusa(f'///*[@id="main"]/div/div/ul/li[{i}]/div/div[2]/h3/text()'))
+            tusa['date'] = addtusa(f'///*[@id="main"]/div/div/ul/li[{i}]/div/div[1]/span[1]/text()')
+            tusa['time'] = addtusa(f'///*[@id="main"]/div/div/ul/li[{i}]/div/div[1]/span[3]/text()')
+            tusa['place'] = changequotes(addtusa(f'///*[@id="main"]/div/div/ul/li[{i}]/h4/a/text()'))
+            tusa['url'] = addtusa(f'///*[@id="main"]/div/div/ul/li[{i}]/div/div[4]/div/a[1]/@href')
+            tusa['buy'] = addtusa(f'///*[@id="main"]/div/div/ul/li[{i}]/div/div[4]/div/a[2]/@href')
+            if not tusa['url']:
+                tusa['url'] = addtusa(f'///*[@id="main"]/div/div/ul/li[{i}]/div/div[4]/div/a[2]/@href')
+                tusa['buy'] = addtusa(f'///*[@id="main"]/div/div/ul/li[{i}]/div/div[4]/div/a[3]/@href')
             tusa['url'] = urllib.parse.urljoin(http, tusa['url'])
             tusa['buy'] = urllib.parse.urljoin(http, tusa['buy'])
-            response_detail = requests.get(tusa['url'])
-            parsed_body_detail = html.fromstring(response_detail.text)
-            tusa['detail'] = ''
-            temp_detail = list(parsed_body_detail.xpath('//*[ @ id = "current-description"]/p/text()'))
-            if temp_detail:
-                for j in range(len(temp_detail)):
-                    if len(tusa['detail']) < len(temp_detail[j]):
-                        tusa['detail'] = temp_detail[j]
+            temp_detail = get_content_list(tusa['url'], '//*[ @ id = "current-description"]/p/text()')
+            tusa['detail'] = max(temp_detail, key=len) if temp_detail else ''
             afisha.append(tusa)
     result = tuple(afisha)
     search(result, load_setting())
@@ -157,9 +149,9 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         if not sys.argv[1].endswith('.xlsx'):
             sys.argv[1] += '.xlsx'
-        savetofile(getafisha(True), sys.argv[1])
+        savetofile(getafisha(), sys.argv[1])
     else:
-        afisha = getafisha(False)
+        afisha = getafisha()
         for i in range(len(afisha)):
-            print('%s - %s : %s (%s)' % (afisha[i]['date'], afisha[i]['time'], afisha[i]['name'], afisha[i]['place']))
+            print(f"{afisha[i]['date']} - {afisha[i]['time']} : {afisha[i]['name']} ({afisha[i]['place']})")
         input()
