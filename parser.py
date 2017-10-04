@@ -4,7 +4,7 @@ import requests
 from lxml import html
 from tqdm import trange
 from mygrabber import get_content_list
-
+from mytclient import send_message_to_telegram
 
 def getafisha()-> tuple:
     def addtusa(mystr: str)-> str:
@@ -54,6 +54,9 @@ def getafisha()-> tuple:
             except Exception:
                 pass
             smtpObj.quit()
+            telegram_text = f'''Сработал триггер на слово {key},\nМероприятие {event['name']}
+пройдет {event['date']} в {event['place']}'''
+            send_message_to_telegram('koncert', telegram_text)
 
         for event in eventlist:
             for index, keys in enumerate(subscription):
