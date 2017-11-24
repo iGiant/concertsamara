@@ -84,7 +84,7 @@ def getafisha()-> tuple:
     afisha = []
     pages = 0
     while True:
-        temp_page = get_content_list(f'{http}?a-page={pages}', '//*[@id="main"]/div[2]/div[3]/ul/li/a/text()')
+        temp_page = get_content_list(f'{http}?a-page={pages}', '//div[@class="pagination"]/ul/li/a/text()')
         if temp_page[-1] != 'Следующая':
             pages = int(temp_page[-1])
             break
@@ -92,20 +92,20 @@ def getafisha()-> tuple:
     for page in trange(pages):
         response = requests.get(http + '?a-page=' + str(page))
         parsed_body = html.fromstring(response.text)
-        for i in range(1, len(parsed_body.xpath('///*[@id="main"]/div/div/ul/li/div/div[2]/h3/text()')) + 1):
+        for i in range(1, round(parsed_body.xpath('count(//ul[@class="list"]/li)')) + 1):
             tusa = {}
-            tusa['name'] = changequotes(addtusa(f'///*[@id="main"]/div/div/ul/li[{i}]/div/div[2]/h3/text()'))
-            tusa['date'] = addtusa(f'///*[@id="main"]/div/div/ul/li[{i}]/div/div[1]/span[1]/text()')
-            tusa['time'] = addtusa(f'///*[@id="main"]/div/div/ul/li[{i}]/div/div[1]/span[3]/text()')
-            tusa['place'] = changequotes(addtusa(f'///*[@id="main"]/div/div/ul/li[{i}]/h4/a/text()'))
-            tusa['url'] = addtusa(f'///*[@id="main"]/div/div/ul/li[{i}]/div/div[4]/div/a[1]/@href')
-            tusa['buy'] = addtusa(f'///*[@id="main"]/div/div/ul/li[{i}]/div/div[4]/div/a[2]/@href')
+            tusa['name'] = changequotes(addtusa(f'//ul[@class="list"]/li[{i}]/div/div[2]/h3/text()'))
+            tusa['date'] = addtusa(f'//ul[@class="list"]/li[{i}]/div/div[1]/span[1]/text()')
+            tusa['time'] = addtusa(f'//ul[@class="list"]/li[{i}]/div/div[1]/span[3]/text()')
+            tusa['place'] = changequotes(addtusa(f'//ul[@class="list"]/li[{i}]/h4/a/text()'))
+            tusa['url'] = addtusa(f'//ul[@class="list"]/li[{i}]/div/div[4]/div/a[1]/@href')
+            tusa['buy'] = addtusa(f'//ul[@class="list"]/li[{i}]/div/div[4]/div/a[2]/@href')
             if not tusa['url']:
-                tusa['url'] = addtusa(f'///*[@id="main"]/div/div/ul/li[{i}]/div/div[4]/div/a[2]/@href')
-                tusa['buy'] = addtusa(f'///*[@id="main"]/div/div/ul/li[{i}]/div/div[4]/div/a[3]/@href')
+                tusa['url'] = addtusa(f'//ul[@class="list"]/li[{i}]/div/div[4]/div/a[2]/@href')
+                tusa['buy'] = addtusa(f'//ul[@class="list"]/li[{i}]/div/div[4]/div/a[3]/@href')
             tusa['url'] = urllib.parse.urljoin(http, tusa['url'])
             tusa['buy'] = urllib.parse.urljoin(http, tusa['buy'])
-            temp_detail = get_content_list(tusa['url'], '//*[ @ id = "current-description"]/p/text()')
+            temp_detail = get_content_list(tusa['url'], '//*[@id="current-description"]/p/text()')
             tusa['detail'] = max(temp_detail, key=len) if temp_detail else ''
             afisha.append(tusa)
     result = tuple(afisha)
