@@ -6,7 +6,7 @@ from tqdm import trange
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from mytclient import send_message_to_telegram
+from mysclient import send_message_to_slack
 
 engine = create_engine('sqlite:///D:/python/db/koncertsamara.sqlite', echo=False)
 Base = declarative_base()
@@ -76,7 +76,7 @@ def getafisha()-> tuple:
                         if subscr.telegram_id:
                             telegram_text = (f"Сработал триггер на слово *{subscr.trigger}*,\n" +
                                              f"Мероприятие {event['name']} пройдет {event['date']} в {event['place']}")
-                            send_message_to_telegram(str(subscr.telegram_id), telegram_text)
+                            send_message_to_slack(str(subscr.telegram_id), telegram_text)
                         if subscr.mail:
                             send_mail(subscr.mail, subscr.trigger, event)
                         logger.info(f'''Письмо на "{subscr.mail}", кодовое слово "{subscr.trigger}"''')
