@@ -3,8 +3,27 @@ import urllib.parse
 import requests
 from lxml import html
 from tqdm import trange
-from mygrabber import get_content_list
+from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from mysclient import send_message_to_slack
 
+engine = create_engine('sqlite:///D:/python/db/koncertsamara.sqlite', echo=False)
+Base = declarative_base()
+Session = sessionmaker(engine)
+
+class Subscription(Base):
+    __tablename__ = 'subscription'
+    id = Column(Integer, primary_key=True)
+    trigger = Column(String(50), nullable=False)
+    telegram_id = Column(Integer)
+    mail = Column(String(50))
+    count = Column(Integer)
+
+    def __repr__(self):
+        telegram = f'telegram: {self.telegram_id}, ' if self.telegram_id else ''
+        mail = f'mail: {self.mail}, ' if self.mail else ''
+        return f'trigger: {self.trigger}, {telegram}{mail}count: {self.count}'
 
 def getafisha()-> tuple:
     def addtusa(mystr: str)-> str:
@@ -16,21 +35,8 @@ def getafisha()-> tuple:
             mytext = '«' + mytext[1:]
         return mytext.replace(' "', ' «').replace('"', '»').lstrip().rstrip()
 
-    def load_setting()-> tuple:
-        with open('subscription.dat', 'r', encoding='utf-8') as file:
-            subsriptions = file.read().split('\n')
-        result = []
-        for subsription in subsriptions:
-            if subsription:
-                mydict = {}
-                parametrs = subsription.split(',')
-                mydict['keys'] = list(parametrs[:-2])
-                mydict['mail'] = parametrs[-2]
-                mydict['count'] = parametrs[-1]
-                result.append(mydict)
-        return tuple(result)
 
-    def search(eventlist: tuple, subscription: tuple):
+    def search(eventlist: tuple):
 
         def send_mail(mail: str, key: str, event: dict):
             import smtplib
@@ -55,24 +61,26 @@ def getafisha()-> tuple:
                 pass
             smtpObj.quit()
 
+        session = Session()
         for event in eventlist:
-            for index, keys in enumerate(subscription):
-                fbreak = False
-                for key in keys['keys']:
-                    if event['name'].lower().find(key.lower()) != -1 or event['detail'].lower().find(key.lower()) != -1:
-                        fbreak = True
-                        send_mail(subscription[index]['mail'], key, event)
-                        logger.info(f'''Письмо на "{subscription[index]['mail']}", кодовое слово "{key}"''')
-                        break
-                if fbreak:
-                    if keys['count'] != '0':
-                        subscription[index]['count'] = '-1' if keys['count'] == '1' else str(int(keys['count']) - 1)
-                    break
-        with open('subscription.dat', 'w', encoding='utf-8') as file:
-            for keys in subscription:
-                if keys['count'] != '-1':
-                    text = ','.join(keys['keys'])
-                    file.write(f"{text},{keys['mail']},{keys['count']}\n")
+            if session.query(Subscription).count() > 0:
+                for subscr in session.query(Subscription).all():
+                    if subscr.count != -1 and (subscr.trigger.lower() in event.get('name', '').lower() or
+                                               subscr.trigger.lower() in event.get('detail', '').lower()):
+                        if subscr.count != 0:
+                            if subscr.count == 1:
+                                subscr.count = -1
+                            else:
+                                subscr.count -= 1
+                            session.commit()
+                        if subscr.telegram_id:
+                            telegram_text = (f"Сработал триггер на слово *{subscr.trigger}*,\n" +
+                                             f"Мероприятие {event['name']} пройдет {event['date']} в {event['place']}")
+                            send_message_to_slack(str(subscr.telegram_id), telegram_text)
+                        if subscr.mail:
+                            send_mail(subscr.mail, subscr.trigger, event)
+                        logger.info(f'''Письмо на "{subscr.mail}", кодовое слово "{subscr.trigger}"''')
+            session.close()
 
     logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO, filename=r'd:\python\logs\parsing.log')
     logger = logging.getLogger(__name__)
@@ -81,7 +89,8 @@ def getafisha()-> tuple:
     afisha = []
     pages = 0
     while True:
-        temp_page = get_content_list(f'{http}?a-page={pages}', '//*[@id="main"]/div[2]/div[3]/ul/li/a/text()')
+        temp_response = html.fromstring(requests.get(f'{http}?a-page={pages}').text)
+        temp_page = temp_response.xpath('//div[@class="pagination"]/ul/li/a/text()')
         if temp_page[-1] != 'Следующая':
             pages = int(temp_page[-1])
             break
@@ -89,24 +98,25 @@ def getafisha()-> tuple:
     for page in trange(pages):
         response = requests.get(http + '?a-page=' + str(page))
         parsed_body = html.fromstring(response.text)
-        for i in range(1, len(parsed_body.xpath('///*[@id="main"]/div/div/ul/li/div/div[2]/h3/text()')) + 1):
+        for i in range(1, round(parsed_body.xpath('count(//ul[@class="list"]/li)')) + 1):
             tusa = {}
-            tusa['name'] = changequotes(addtusa(f'///*[@id="main"]/div/div/ul/li[{i}]/div/div[2]/h3/text()'))
-            tusa['date'] = addtusa(f'///*[@id="main"]/div/div/ul/li[{i}]/div/div[1]/span[1]/text()')
-            tusa['time'] = addtusa(f'///*[@id="main"]/div/div/ul/li[{i}]/div/div[1]/span[3]/text()')
-            tusa['place'] = changequotes(addtusa(f'///*[@id="main"]/div/div/ul/li[{i}]/h4/a/text()'))
-            tusa['url'] = addtusa(f'///*[@id="main"]/div/div/ul/li[{i}]/div/div[4]/div/a[1]/@href')
-            tusa['buy'] = addtusa(f'///*[@id="main"]/div/div/ul/li[{i}]/div/div[4]/div/a[2]/@href')
+            tusa['name'] = changequotes(addtusa(f'//ul[@class="list"]/li[{i}]/div/div[2]/h3/text()'))
+            tusa['date'] = addtusa(f'//ul[@class="list"]/li[{i}]/div/div[1]/span[1]/text()')
+            tusa['time'] = addtusa(f'//ul[@class="list"]/li[{i}]/div/div[1]/span[3]/text()')
+            tusa['place'] = changequotes(addtusa(f'//ul[@class="list"]/li[{i}]/h4/a/text()'))
+            tusa['url'] = addtusa(f'//ul[@class="list"]/li[{i}]/div/div[4]/div/a[1]/@href')
+            tusa['buy'] = addtusa(f'//ul[@class="list"]/li[{i}]/div/div[4]/div/a[2]/@href')
             if not tusa['url']:
-                tusa['url'] = addtusa(f'///*[@id="main"]/div/div/ul/li[{i}]/div/div[4]/div/a[2]/@href')
-                tusa['buy'] = addtusa(f'///*[@id="main"]/div/div/ul/li[{i}]/div/div[4]/div/a[3]/@href')
+                tusa['url'] = addtusa(f'//ul[@class="list"]/li[{i}]/div/div[4]/div/a[2]/@href')
+                tusa['buy'] = addtusa(f'//ul[@class="list"]/li[{i}]/div/div[4]/div/a[3]/@href')
             tusa['url'] = urllib.parse.urljoin(http, tusa['url'])
             tusa['buy'] = urllib.parse.urljoin(http, tusa['buy'])
-            temp_detail = get_content_list(tusa['url'], '//*[ @ id = "current-description"]/p/text()')
+            temp_response = html.fromstring(requests.get(tusa['url']).text)
+            temp_detail = temp_response.xpath('//*[@id="current-description"]/p/text()')
             tusa['detail'] = max(temp_detail, key=len) if temp_detail else ''
             afisha.append(tusa)
     result = tuple(afisha)
-    search(result, load_setting())
+    search(result)
     return result
 
 
