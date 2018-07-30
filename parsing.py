@@ -25,6 +25,7 @@ class Subscription(Base):
         mail = f'mail: {self.mail}, ' if self.mail else ''
         return f'trigger: {self.trigger}, {telegram}{mail}count: {self.count}'
 
+
 def getafisha()-> tuple:
     def addtusa(mystr: str)-> str:
         temp = tuple(parsed_body.xpath(mystr))
@@ -34,7 +35,6 @@ def getafisha()-> tuple:
         if mytext and mytext[0] == '"':
             mytext = '«' + mytext[1:]
         return mytext.replace(' "', ' «').replace('"', '»').lstrip().rstrip()
-
 
     def search(eventlist: tuple):
 
