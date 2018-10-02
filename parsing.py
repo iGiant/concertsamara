@@ -25,6 +25,7 @@ class Subscription(Base):
         mail = f'mail: {self.mail}, ' if self.mail else ''
         return f'trigger: {self.trigger}, {telegram}{mail}count: {self.count}'
 
+
 def getafisha()-> tuple:
     def addtusa(mystr: str)-> str:
         temp = tuple(parsed_body.xpath(mystr))
@@ -34,7 +35,6 @@ def getafisha()-> tuple:
         if mytext and mytext[0] == '"':
             mytext = '«' + mytext[1:]
         return mytext.replace(' "', ' «').replace('"', '»').lstrip().rstrip()
-
 
     def search(eventlist: tuple):
 
@@ -73,10 +73,9 @@ def getafisha()-> tuple:
                             else:
                                 subscr.count -= 1
                             session.commit()
-                        if subscr.telegram_id:
-                            telegram_text = (f"Сработал триггер на слово *{subscr.trigger}*,\n" +
+                        telegram_text = (f"Сработал триггер на слово *{subscr.trigger}*,\n" +
                                              f"Мероприятие {event['name']} пройдет {event['date']} в {event['place']}")
-                            send_message_to_slack(str(subscr.telegram_id), telegram_text)
+                        send_message_to_slack(':sound: Concert', telegram_text)
                         if subscr.mail:
                             send_mail(subscr.mail, subscr.trigger, event)
                         logger.info(f'''Письмо на "{subscr.mail}", кодовое слово "{subscr.trigger}"''')
@@ -162,6 +161,6 @@ if __name__ == '__main__':
         savetofile(getafisha(), sys.argv[1])
     else:
         afisha = getafisha()
-        for i in range(len(afisha)):
-            print(f"{afisha[i]['date']} - {afisha[i]['time']} : {afisha[i]['name']} ({afisha[i]['place']})")
+        print(*[f"{event['date']} - {event['time']} : {event['name']} ({event['place']})" for event in afisha],
+              sep = '\n')
         input()

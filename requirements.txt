@@ -1,0 +1,5 @@
+aiohttp
+fake-useragent
+lxml
+openpyxl
+tqdm

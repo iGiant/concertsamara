@@ -6,3 +6,4 @@
 fabric8-analytics\.log
 
 \.vscode/
+\.mypy_cache/
