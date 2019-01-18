@@ -9,18 +9,18 @@ from openpyxl.styles import fonts, alignment, Side, Border
 from openpyxl.styles.colors import COLOR_INDEX
 from openpyxl.comments import comments
 from tqdm import tqdm
-from dataclasses import dataclass
+from attr import attrib, attrs
 
 
-@dataclass
+@attrs(slots=True)
 class Event:
-    name = ''
-    date = ''
-    time = ''
-    place = ''
-    url = ''
-    buy = ''
-    detail = ''
+    name: str = attrib(default='')
+    date: str = attrib(default='')
+    time: str = attrib(default='')
+    place: str = attrib(default='')
+    url: str = attrib(default='')
+    buy: str = attrib(default='')
+    detail: str = attrib(default='')
 
 
 addr = 'http://koncertsamara.ru/afisha/'
@@ -73,17 +73,18 @@ async def main():
         bar = tqdm(desc='Загрузка мероприятий')
         for response in responses:
             source = html.fromstring(response[1])
-            for i in range(1, round(source.xpath('count(//ul[@class="list"]/li)')) + 1):
-                event = Event()
-                event.name = changequotes(get_element(source, f'//ul[@class="list"]/li[{i}]/div/div[2]/h3/text()'))
-                event.date = get_element(source, f'//ul[@class="list"]/li[{i}]/div/div[1]/span[1]/text()')
-                event.time = get_element(source, f'//ul[@class="list"]/li[{i}]/div/div[1]/span[3]/text()')
-                event.place = changequotes(get_element(source, f'//ul[@class="list"]/li[{i}]/h4/a/text()'))
-                event.url = get_element(source, f'//ul[@class="list"]/li[{i}]/div/div[4]/div/a[1]/@href')
-                event.buy = get_element(source, f'//ul[@class="list"]/li[{i}]/div/div[4]/div/a[2]/@href')
+            for base_event in source.xpath('//ul[@class="list"]/li'):
+                event = Event(
+                    name=changequotes(get_element(base_event, 'div/div[2]/h3/text()')),
+                    date=get_element(base_event, 'div/div[1]/span[1]/text()'),
+                    time=get_element(base_event, 'div/div[1]/span[3]/text()'),
+                    place=changequotes(get_element(base_event, 'h4/a/text()')),
+                    url=get_element(base_event, 'div/div[4]/div/a[1]/@href'),
+                    buy=get_element(base_event, 'div/div[4]/div/a[2]/@href')
+                )
                 if not event.url or event.url == '/newslist/novinka-elektronnyj-bilet/':
-                    event.url = get_element(source, f'//ul[@class="list"]/li[{i}]/div/div[4]/div/a[2]/@href')
-                    event.buy = get_element(source, f'//ul[@class="list"]/li[{i}]/div/div[4]/div/a[3]/@href')
+                    event.url = get_element(base_event, 'div/div[4]/div/a[2]/@href')
+                    event.buy = get_element(base_event, 'div/div[4]/div/a[3]/@href')
                 event.url = urllib.parse.urljoin(addr, event.url)
                 event.buy = urllib.parse.urljoin(addr, event.buy)
                 tasks.append(asyncio.ensure_future(
@@ -140,5 +141,6 @@ if __name__ == '__main__':
         savetofile(afisha, sys.argv[1])
     else:
         print()
-        print(*[f"{event.date} - {event.time} : {event.name} ({event.place})" for event in afisha],
+        print(*[f"{event.date}{' – ' if event.time else ''}{event.time} : {event.name} ({event.place})"
+                for event in afisha],
               sep='\n')
