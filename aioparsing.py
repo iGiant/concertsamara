@@ -9,18 +9,18 @@ from openpyxl.styles import fonts, alignment, Side, Border
 from openpyxl.styles.colors import COLOR_INDEX
 from openpyxl.comments import comments
 from tqdm import tqdm
-from attr import attrib, attrs
+from attr import attrs
 
 
-@attrs(slots=True)
+@attrs(slots=True, auto_attribs=True)
 class Event:
-    name: str = attrib(default='')
-    date: str = attrib(default='')
-    time: str = attrib(default='')
-    place: str = attrib(default='')
-    url: str = attrib(default='')
-    buy: str = attrib(default='')
-    detail: str = attrib(default='')
+    name: str = ''
+    date: str = ''
+    time: str = ''
+    place: str = ''
+    url: str = ''
+    buy: str = ''
+    detail: str = ''
 
 
 addr = 'http://koncertsamara.ru/afisha/'

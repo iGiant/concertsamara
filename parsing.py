@@ -8,7 +8,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from mysclient import send_message_to_slack
 
-engine = create_engine('sqlite:///D:/python/db/koncertsamara.sqlite', echo=False)
+engine = create_engine('sqlite:///D:/Programs/python/db/koncertsamara.sqlite', echo=False)
 Base = declarative_base()
 Session = sessionmaker(engine)
 
